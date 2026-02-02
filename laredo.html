@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Goofy Times Crossword</title>
+
+<style>
+  :root {
+    --cell: 36px;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    padding: 16px;
+    background: #f7f7f7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  h1 {
+    margin-bottom: 12px;
+    font-size: 24px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 20px;
+    max-width: 900px;
+    width: 100%;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(22, var(--cell));
+    grid-auto-rows: var(--cell);
+    border: 2px solid #000;
+    background: #000;
+  }
+
+  .cell {
+    position: relative;
+    background: #fff;
+    border: 1px solid #000;
+    box-sizing: border-box;
+  }
+
+  .cell.block {
+    background: #000;
+  }
+
+  .cell input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    text-transform: uppercase;
+    background: transparent;
+    caret-color: transparent;
+  }
+
+  .number {
+    position: absolute;
+    top: 2px;
+    left: 3px;
+    font-size: 9px;
+  }
+
+  .clues {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .clue-list h3 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    border-bottom: 1px solid #ccc;
+  }
+
+  .clue {
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+
+  @media (max-width: 768px) {
+    :root { --cell: 28px; }
+    .layout { grid-template-columns: 1fr; }
+    .clues { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+
+<body>
+<h1>The Goofy Times Crossword</h1>
+
+<div class="layout">
+  <div id="grid" class="grid"></div>
+
+  <div class="clues">
+    <div class="clue-list">
+      <h3>ACROSS</h3>
+      <div class="clue">4. Third date restaurant</div>
+      <div class="clue">6. The city I was born in</div>
+      <div class="clue">7. Common hangout place</div>
+      <div class="clue">10. Your preferred music genre, jokingly</div>
+      <div class="clue">12. An activity we both enjoy</div>
+      <div class="clue">13. Queen and ace</div>
+      <div class="clue">15. Flying prehistoric creature</div>
+      <div class="clue">16. A special date in October</div>
+    </div>
+
+    <div class="clue-list">
+      <h3>DOWN</h3>
+      <div class="clue">1. An animal that’s part of an inside joke</div>
+      <div class="clue">2. Best team on the planet to you, sometimes</div>
+      <div class="clue">3. My favorite artist</div>
+      <div class="clue">5. Tasty fun guys</div>
+      <div class="clue">8. Your favorite color</div>
+      <div class="clue">9. A concert we went to</div>
+      <div class="clue">11. Charles Barkley’s funny pal</div>
+      <div class="clue">14. A city in Michigan</div>
+      <div class="clue">15. Frequently referred to, memorable place</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const gridPattern = [
+  "################_#####",
+  "################_#_###",
+  "###########_####_#_###",
+  "###########_#_______##",
+  "###########_######_###",
+  "###########_######_###",
+  "###########_##_###_###",
+  "###########_#_________",
+  "###########_##_###_###",
+  "##########_____#######",
+  "#########_#_##_#######",
+  "#######_#_#_##_#######",
+  "#######_#_####_#######",
+  "#####______________###",
+  "#######_######_#_#####",
+  "##_______#######_#####",
+  "#######_########_#####",
+  "_________#############",
+  "###_###_##___________#",
+  "___________###########",
+  "###_######_###########",
+  "###_######_###########",
+  "###_######_###########"
+];
+
+const rows = gridPattern.length;
+const cols = gridPattern[0].length;
+const grid = document.getElementById("grid");
+const cells = [];
+let clueNumber = 1;
+let direction = "across";
+let activeCell = null;
+let hasWon = false;
+
+function isBlock(r, c) {
+  return gridPattern[r][c] === "#";
+}
+
+function index(r, c) {
+  return r * cols + c;
+}
+
+/******** BUILD GRID ********/
+for (let r = 0; r < rows; r++) {
+  for (let c = 0; c < cols; c++) {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.dataset.row = r;
+    cell.dataset.col = c;
+
+    if (isBlock(r, c)) {
+      cell.classList.add("block");
+    } else {
+      const input = document.createElement("input");
+      input.maxLength = 1;
+      cell.appendChild(input);
+
+      const startsAcross =
+        (c === 0 || isBlock(r, c - 1)) &&
+        (c + 1 < cols && !isBlock(r, c + 1));
+
+      const startsDown =
+        (r === 0 || isBlock(r - 1, c)) &&
+        (r + 1 < rows && !isBlock(r + 1, c));
+
+      if (startsAcross || startsDown) {
+        const num = document.createElement("div");
+        num.className = "number";
+        num.textContent = clueNumber++;
+        cell.appendChild(num);
+      }
+
+      input.addEventListener("focus", () => {
+        if (activeCell === cell) {
+          direction = direction === "across" ? "down" : "across";
+        }
+        activeCell = cell;
+        highlightWord(r, c);
+      });
+
+      input.addEventListener("input", checkWin);
+    }
+
+    grid.appendChild(cell);
+    cells.push(cell);
+  }
+}
+
+/******** HIGHLIGHT WORD ********/
+function highlightWord(r, c) {
+  cells.forEach(cell => cell.classList.remove("highlight", "selected"));
+
+  const dr = direction === "across" ? 0 : 1;
+  const dc = direction === "across" ? 1 : 0;
+
+  let sr = r, sc = c;
+  while (
+    sr - dr >= 0 &&
+    sc - dc >= 0 &&
+    !isBlock(sr - dr, sc - dc)
+  ) {
+    sr -= dr;
+    sc -= dc;
+  }
+
+  let cr = sr, cc = sc;
+  while (
+    cr < rows &&
+    cc < cols &&
+    !isBlock(cr, cc)
+  ) {
+    cells[index(cr, cc)].classList.add("highlight");
+    cr += dr;
+    cc += dc;
+  }
+
+  cells[index(r, c)].classList.add("selected");
+}
+
+/******** WIN CHECK ********/
+function checkWin() {
+  if (hasWon) return;
+
+  const inputs = grid.querySelectorAll("input");
+  for (const input of inputs) {
+    if (!input.value) return;
+  }
+
+  hasWon = true;
+  setTimeout(() => {
+    alert("congratulations! score: 1000");
+    confettiBurst();
+  }, 100);
+}
+
+/******** CONFETTI BURST ********/
+function confettiBurst() {
+  const colors = ["#ff3b3b", "#ffd93b", "#3b82ff", "#22c55e", "#a855f7"];
+  const centerX = window.innerWidth / 2;
+  const centerY = window.innerHeight / 2;
+
+  for (let i = 0; i < 140; i++) {
+    const piece = document.createElement("div");
+    piece.style.position = "fixed";
+    piece.style.left = centerX + "px";
+    piece.style.top = centerY + "px";
+    piece.style.width = "6px";
+    piece.style.height = "6px";
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.borderRadius = "2px";
+
+    const angle = Math.random() * 2 * Math.PI;
+    const distance = Math.random() * 300 + 100;
+
+    piece.animate(
+      [
+        { transform: "translate(0,0)", opacity: 1 },
+        {
+          transform: `translate(${Math.cos(angle) * distance}px, ${Math.sin(angle) * distance}px)`,
+          opacity: 0
+        }
+      ],
+      { duration: 1200, easing: "ease-out" }
+    );
+
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 1300);
+  }
+}
+</script>
+</body>
+</html>
